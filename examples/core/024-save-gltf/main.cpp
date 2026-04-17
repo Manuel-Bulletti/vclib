@@ -46,17 +46,23 @@ int main()
 
     tinygltf::Model model;
 
+    //TODO controlla il codice di save e load buffer
+    //TODO controlla il codice di rendering
+    //TODO 1) colore per vertice
+    //TODO 2) templating su mesh concept
+    //TODO 3) templating per mesh poligonali
+    //TODO faces to triangles: triangulatedFaceVertexIndicesToBuffer
+
     //TODO pull dalla main branch
 
-    //TODO materials, tex coord, material
+    //TODO materials, tex coord, nome della mesh
+    //TODO separazione delle primitive in base al materiale dei vertici
 
     model.asset.version = "2.0";
     model.asset.generator = "vclib-tinygltf-exporter";
 
     // mesh
     tinygltf::Mesh mesh;
-
-    //TODO separazione delle primitive in base al materiale
 
     // triangles
     tinygltf::Primitive primitive;
@@ -66,6 +72,7 @@ int main()
     primitive.mode = 4; // gltf TRIANGLES
     //TODO Tex coords
     //TODO material
+    //TODO vertex color
 
     mesh.primitives.push_back(primitive);
     model.meshes.push_back(mesh);
@@ -77,40 +84,28 @@ int main()
     tinygltf::Buffer positionsBuffer{}, normalsBuffer{}, indicesBuffer{};
 
     // vertices
-    std::vector<float> verticesRaw(3 * bunnyMesh.vertexCount());
-    vcl::vertexPositionsToBuffer(bunnyMesh, verticesRaw.data());
-    std::vector<unsigned char> verticesBufferData(
-            reinterpret_cast<unsigned char*>(verticesRaw.data()),
-            reinterpret_cast<unsigned char*>(verticesRaw.data()) + verticesRaw.size() * sizeof(float)
-        );
-    positionsBuffer.data = verticesBufferData;
+    positionsBuffer.data.resize(3 * bunnyMesh.vertexCount() * sizeof(float));
+    float* fd = reinterpret_cast<float*>(positionsBuffer.data.data());
+    vcl::vertexPositionsToBuffer(bunnyMesh, fd);
 
     // normals
-    std::vector<float> normalsRaw(3 * bunnyMesh.vertexCount());
-    vcl::vertexNormalsToBuffer(bunnyMesh, normalsRaw.data());
-    std::vector<unsigned char> normalsBufferData(
-        reinterpret_cast<unsigned char*>(normalsRaw.data()),
-        reinterpret_cast<unsigned char*>(normalsRaw.data()) + normalsRaw.size() * sizeof(float)
-        );
-    normalsBuffer.data = normalsBufferData;
+    normalsBuffer.data.resize(3 * bunnyMesh.vertexCount() * sizeof(float));
+    fd = reinterpret_cast<float*>(normalsBuffer.data.data());
+    vcl::vertexNormalsToBuffer(bunnyMesh, fd);
 
     // indices
-    std::vector<uint32_t> vertexIndicesRaw{};
-    vertexIndicesRaw.reserve(3 * bunnyMesh.faceCount()); // They are triangle faces
+    indicesBuffer.data.resize(3 * bunnyMesh.faceCount() * sizeof(uint32_t));
+    uint32_t* fuint = reinterpret_cast<uint32_t*>(indicesBuffer.data.data());
     // indices of vertices that do not consider deleted vertices
     std::vector<uint32_t> vIndices = bunnyMesh.vertexCompactIndices();
+    size_t indexI = 0;
 
     for (const vcl::TriMesh::Face& f : bunnyMesh.faces()) {
         for (const vcl::TriMesh::Vertex* v : f.vertices()) {
-            vertexIndicesRaw.emplace_back(vIndices[bunnyMesh.index(v)]);
+            fuint[indexI] = vIndices[bunnyMesh.index(v)];
+            indexI++;
         }
     }
-
-    std::vector<unsigned char> indicesBufferData(
-        reinterpret_cast<unsigned char*>(vertexIndicesRaw.data()),
-        reinterpret_cast<unsigned char*>(vertexIndicesRaw.data()) + vertexIndicesRaw.size() * sizeof(uint32_t)
-        );
-    indicesBuffer.data = indicesBufferData;
 
     model.buffers.push_back(positionsBuffer);
     model.buffers.push_back(normalsBuffer);
@@ -169,22 +164,6 @@ int main()
     scene.nodes.push_back(0);
     model.scenes.push_back(scene);
     model.defaultScene = 0;
-
-
-
-    //TODO restante:
-    //TODO materiali
-    //TODO nome
-
-
-
-    //TODO faces to triangles: triangulatedFaceVertexIndicesToBuffer
-
-    /*
-#ifndef TINYGLTF_NO_STB_IMAGE_WRITE
-    loader.WriteGltfSceneToFile(&model, embedded_filename, true, true);
-#endif
-    */
 
     std::cout << "Exporting to gltf..." << std::endl;
 
