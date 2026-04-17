@@ -98,7 +98,7 @@ int main()
     std::vector<uint32_t> vertexIndicesRaw{};
     vertexIndicesRaw.reserve(3 * bunnyMesh.faceCount()); // They are triangle faces
     // indices of vertices that do not consider deleted vertices
-    std::vector<uint> vIndices = bunnyMesh.vertexCompactIndices();
+    std::vector<uint32_t> vIndices = bunnyMesh.vertexCompactIndices();
 
     for (const vcl::TriMesh::Face& f : bunnyMesh.faces()) {
         for (const vcl::TriMesh::Vertex* v : f.vertices()) {
