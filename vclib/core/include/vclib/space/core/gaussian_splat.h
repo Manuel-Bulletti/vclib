@@ -58,33 +58,39 @@ public:
     /**
      * @brief The number of the spherical harmonics coefficients
      */
-    static constexpr uint SH_DEGREE = 3;
     static constexpr uint SH_COLOR = 3; // RGB color channels
-    static constexpr uint SH_COEFF_COUNT =
-        SH_COLOR * (SH_DEGREE+1)*(SH_DEGREE+1);
-        // e.g. l = 0..3 -> (1+3+5+7)*3 = 48
 
     /**
      * @brief The type of spherical harmonics coefficients array of the
      * 3D gaussian.
      */
-    using SHCoeffArrayType = std::array<ScalarType, SH_COEFF_COUNT>;
+    using SHCoeffVectorType = std::vector<ScalarType>;
 
 private:
-    ScalarType       mOpacity{1};
-    PointType        mScale {1, 1, 1};
-    QuatType         mRotation {1, 0, 0, 0}; // Identity rotation
-    SHCoeffArrayType mSHCoeffs {};           // Initialized to zeros
+    ScalarType        mOpacity  {1};
+    PointType         mScale    {1, 1, 1};
+    QuatType          mRotation {1, 0, 0, 0}; // Identity rotation
+    uint              mSHDegree {0};
+    SHCoeffVectorType mSHCoeffs {};           // Initialized with zero elements
 
 public:
     GaussianSplat() = default;
 
     GaussianSplat(
-        const PointType&        scale,
-        const QuatType&         rotation,
-        const SHCoeffArrayType& shCoeffs) :
-            mScale(scale), mRotation(rotation), mSHCoeffs(shCoeffs)
-    {
+        const PointType&         scale,
+        const QuatType&          rotation,
+        const SHCoeffVectorType& shCoeffs) :
+            mScale(scale), mRotation(rotation)
+    {       
+        double intPart;
+        double fracPart = std::modf(std::sqrt(shCoeffs.size() / static_cast<float>(SH_COLOR)), &intPart);
+
+        if (fracPart != 0.0 || intPart <= 0 || intPart > 4)
+            throw std::runtime_error(
+                "Argument error: Invalid vector size\n");
+
+        mSHDegree = static_cast<uint>(intPart) - 1;
+        mSHCoeffs(shCoeffs);
     }
 
     /**
@@ -109,27 +115,27 @@ public:
     decltype(auto) rotation(this auto&& self) { return (self.mRotation); }
 
     /**
-     * @brief Returns a reference to the spherical harmonics coefficients of the
+     * @brief Returns a const reference to the spherical harmonics coefficients of the
      * GaussianSplat object.
      *
-     * @return A reference to the spherical harmonics coefficients of the
+     * @return A const reference to the spherical harmonics coefficients of the
      * GaussianSplat object.
      */
-    decltype(auto) shCoeffs(this auto&& self) { return (self.mSHCoeffs); }
+    const auto& shCoeffs(this const auto& self) { return self.mSHCoeffs; }
 
     /**
-     * @brief Returns a reference to the spherical harmonics coefficient at the
+     * @brief Returns a const reference to the spherical harmonics coefficient at the
      * specified index of the GaussianSplat object.
      *
      * @param[in] i: The index of the spherical harmonics coefficient to
-     * retrieve. Must be less than SH_COEFF_COUNT.
+     * retrieve. Must be less than mSHCoeffs.size().
      *
-     * @return A reference to the spherical harmonics coefficient at the
+     * @return A const reference to the spherical harmonics coefficient at the
      * specified index of the GaussianSplat object.
      */
-    decltype(auto) shCoeffAt(this auto&& self, uint i)
+    const auto& shCoeffAt(this const auto& self, uint i)
     {
-        assert(i < self.SH_COEFF_COUNT);
+        assert(i < self.mSHCoeffs.size());
 
         return self.mSHCoeffs[i];
     }
@@ -181,9 +187,9 @@ public:
      *
      * The member function takes a variable number of scalar arguments, which
      * are used to set the spherical harmonics coefficients of the GaussianSplat
-     * object. The number of arguments must be equal to the number of spherical
-     * harmonics coefficients of the GaussianSplat object, which
-     * is determined by the static member SH_COEFF_COUNT.
+     * object. The number of arguments must be equal to:
+     *     SH_COLOR * (degree + 1)^2
+     * where degree is an integer between 0 and 3, with bounds included.
      *
      * @tparam Scalars: The types of the scalar arguments.
      *
@@ -191,9 +197,15 @@ public:
      * spherical harmonics coefficients of the GaussianSplat object.
      */
     template<typename... Scalars>
-    void setSHCoeffs(Scalars... scalars)
-        requires (sizeof...(scalars) == SH_COEFF_COUNT)
-    {
+    void setSHCoeffs(Scalars... scalars) {
+        double intPart;
+        double fracPart = std::modf(std::sqrt(sizeof...(scalars) / static_cast<float>(SH_COLOR)), &intPart);
+
+        if (fracPart != 0.0 || intPart <= 0 || intPart > 4)
+            throw std::runtime_error(
+                "Argument error: Invalid vector size\n");
+
+        mSHDegree = static_cast<uint>(intPart) - 1;
         mSHCoeffs = {static_cast<ScalarType>(scalars)...};
     }
 
@@ -201,10 +213,25 @@ public:
      * @brief Sets all the spherical harmonics coefficients of the
      * GaussianSplat object by making a copy of the specified coefficients.
      *
-     * @param[in] coeffs: The array argument used to set the
+     * @param[in] coeffs: The vector argument used to set the
      * spherical harmonics coefficients of the GaussianSplat object.
+     * The number of arguments must be equal to:
+     *     SH_COLOR * (degree + 1)^2
+     * where degree is an integer between 0 and 3, with bounds included.
+     *
+     * @throws std::runtime_error if a vector of an invalid size is provided.
      */
-    void setSHCoeffs(const SHCoeffArrayType& coeffs) { mSHCoeffs = coeffs; }
+    void setSHCoeffs(const SHCoeffVectorType& coeffs) {
+        double intPart;
+        double fracPart = std::modf(std::sqrt(coeffs.size() / static_cast<float>(SH_COLOR)), &intPart);
+
+        if (fracPart != 0.0 || intPart <= 0 || intPart > 4)
+            throw std::runtime_error(
+                "Argument error: Invalid vector size\n");
+
+        mSHDegree = static_cast<uint>(intPart) - 1;
+        mSHCoeffs = coeffs;
+    }
 
     /**
      * @brief Casts the GaussianSplat object to a different scalar type.
@@ -225,7 +252,7 @@ public:
             return *this;
         }
         else {
-            std::array<S, SH_COEFF_COUNT> coeffs;
+            std::array<S, mSHCoeffs.size()> coeffs;
 
             std::transform(
                 mSHCoeffs.begin(),
@@ -251,7 +278,7 @@ public:
         vcl::serialize(os, mOpacity);
         mScale.serialize(os);
         vcl::serializeN(os, mRotation.coeffs().data(), 4);
-        vcl::serializeN(os, mSHCoeffs.data(), SH_COEFF_COUNT);
+        vcl::serializeN(os, mSHCoeffs.data(), mSHCoeffs.size());
     }
 
     /**
@@ -263,7 +290,7 @@ public:
         vcl::deserialize(is, mOpacity);
         mScale.deserialize(is);
         vcl::deserializeN(is, mRotation.coeffs().data(), 4);
-        vcl::deserializeN(is, mSHCoeffs.begin(), SH_COEFF_COUNT);
+        vcl::deserializeN(is, mSHCoeffs.begin(), mSHCoeffs.size());
     }
 };
 
