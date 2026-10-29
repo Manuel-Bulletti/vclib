@@ -141,6 +141,13 @@ public:
     }
 
     /**
+     * @brief Returns the degree of the GaussianSplat object.
+     *
+     * @return The degree of the GaussianSplat object.
+     */
+    const uint shDegree() { return mSHDegree; }
+
+    /**
      * @brief Computes the covariance matrix of the 3D gaussian.
      *
      * This function computes the covariance matrix of the 3D gaussian,
@@ -197,7 +204,8 @@ public:
      * spherical harmonics coefficients of the GaussianSplat object.
      */
     template<typename... Scalars>
-    void setSHCoeffs(Scalars... scalars) {
+    void setSHCoeffs(Scalars... scalars)
+    {
         double intPart;
         double fracPart = std::modf(std::sqrt(sizeof...(scalars) / static_cast<float>(SH_COLOR)), &intPart);
 
@@ -221,7 +229,8 @@ public:
      *
      * @throws std::runtime_error if a vector of an invalid size is provided.
      */
-    void setSHCoeffs(const SHCoeffVectorType& coeffs) {
+    void setSHCoeffs(const SHCoeffVectorType& coeffs)
+    {
         double intPart;
         double fracPart = std::modf(std::sqrt(coeffs.size() / static_cast<float>(SH_COLOR)), &intPart);
 
