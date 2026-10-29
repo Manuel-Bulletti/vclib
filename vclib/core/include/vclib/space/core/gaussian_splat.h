@@ -76,6 +76,9 @@ private:
 public:
     GaussianSplat() = default;
 
+    /**
+     * @throws std::runtime_error if a vector of an invalid size is provided.
+     */
     GaussianSplat(
         const PointType&         scale,
         const QuatType&          rotation,
@@ -202,6 +205,8 @@ public:
      *
      * @param[in] scalars: The scalar arguments used to set the
      * spherical harmonics coefficients of the GaussianSplat object.
+     *
+     * @throws std::runtime_error if a vector of an invalid size is provided.
      */
     template<typename... Scalars>
     void setSHCoeffs(Scalars... scalars)
