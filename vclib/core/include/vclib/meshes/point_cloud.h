@@ -35,6 +35,7 @@ class Vertex;
  * @extends vert::OptionalMaterialIndex
  * @extends vert::OptionalMark
  * @extends vert::CustomComponents
+ * @extends vert::OptionalGaussianSplat
  *
  * @tparam Scalar: The scalar type used for the mesh.
  *
@@ -53,7 +54,8 @@ class Vertex :
             vert::OptionalTexCoord<Scalar, Vertex<Scalar>>,
             vert::OptionalMaterialIndex<Vertex<Scalar>>,
             vert::OptionalMark<Vertex<Scalar>>,
-            vert::CustomComponents<Vertex<Scalar>>>
+            vert::CustomComponents<Vertex<Scalar>>,
+            vert::OptionalGaussianSplat<Scalar, Vertex<Scalar>>>
 {
 public:
     friend void swap(Vertex& a, Vertex& b) { a.swap(b); }
