@@ -127,16 +127,16 @@ public:
     const auto& shCoeffs(this const auto& self) { return self.mSHCoeffs; }
 
     /**
-     * @brief Returns a const reference to the spherical harmonics coefficient at the
+     * @brief Returns a reference to the spherical harmonics coefficient at the
      * specified index of the GaussianSplat object.
      *
      * @param[in] i: The index of the spherical harmonics coefficient to
      * retrieve. Must be less than mSHCoeffs.size().
      *
-     * @return A const reference to the spherical harmonics coefficient at the
+     * @return A reference to the spherical harmonics coefficient at the
      * specified index of the GaussianSplat object.
      */
-    const auto& shCoeffAt(this const auto& self, uint i)
+    decltype(auto) shCoeffAt(this auto& self, uint i)
     {
         assert(i < self.mSHCoeffs.size());
 
@@ -149,6 +149,20 @@ public:
      * @return The degree of the GaussianSplat object.
      */
     const uint shDegree() { return mSHDegree; }
+
+    /**
+     * @brief Resizes the spherical harmonics vector.
+     *
+     * @param[in] size: The uint argument used to resize the vector
+     * containing the spherical harmonics coefficients of the GaussianSplat object.
+     *
+     * @throws std::runtime_error if an invalid size is provided.
+     */
+    void resizeSHCoeffs(uint size)
+    {
+        mSHDegree = getDegreeFromSize(size);
+        mSHCoeffs.resize(size);
+    }
 
     /**
      * @brief Computes the covariance matrix of the 3D gaussian.
@@ -211,14 +225,7 @@ public:
     template<typename... Scalars>
     void setSHCoeffs(Scalars... scalars)
     {
-        double intPart;
-        double fracPart = std::modf(std::sqrt(sizeof...(scalars) / static_cast<float>(SH_COLOR)), &intPart);
-
-        if (fracPart != 0.0 || intPart <= 0 || intPart > 4)
-            throw std::runtime_error(
-                "Argument error: Invalid vector size\n");
-
-        mSHDegree = static_cast<uint>(intPart) - 1;
+        mSHDegree = getDegreeFromSize(sizeof...(scalars));
         mSHCoeffs = {static_cast<ScalarType>(scalars)...};
     }
 
@@ -236,14 +243,7 @@ public:
      */
     void setSHCoeffs(const SHCoeffVectorType& coeffs)
     {
-        double intPart;
-        double fracPart = std::modf(std::sqrt(coeffs.size() / static_cast<float>(SH_COLOR)), &intPart);
-
-        if (fracPart != 0.0 || intPart <= 0 || intPart > 4)
-            throw std::runtime_error(
-                "Argument error: Invalid vector size\n");
-
-        mSHDegree = static_cast<uint>(intPart) - 1;
+        mSHDegree = getDegreeFromSize(coeffs.size());
         mSHCoeffs = coeffs;
     }
 
@@ -305,6 +305,18 @@ public:
         mScale.deserialize(is);
         vcl::deserializeN(is, mRotation.coeffs().data(), 4);
         vcl::deserializeN(is, mSHCoeffs.begin(), mSHCoeffs.size());
+    }
+
+private:
+    int getDegreeFromSize(int size) {
+        double intPart;
+        double fracPart = std::modf(std::sqrt(size / static_cast<float>(SH_COLOR)), &intPart);
+
+        if (fracPart != 0.0 || intPart <= 0 || intPart > 4)
+            throw std::runtime_error(
+                "Argument error: Invalid vector size\n");
+
+        return static_cast<uint>(intPart) - 1;
     }
 };
 
