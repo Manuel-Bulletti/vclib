@@ -173,24 +173,6 @@ void readPlyVertexTxt(
 {
     Tokenizer           spaceTokenizer = readAndTokenizeNextNonEmptyLine(file);
     Tokenizer::iterator token          = spaceTokenizer.begin();
-    // Find the count of the spherical harmonics coefficients
-    if constexpr (HasPerVertexGaussianSplat<MeshType>) {
-        uint shCoeffCount = 0;
-        using Scalar = VertexType::GaussianSplatType::ScalarType;
-        for (const PlyProperty& p : vertexProperties) {
-            if (token == spaceTokenizer.end()) {
-                throw MalformedFileException("Unexpected end of line.");
-            }
-            if (p.name >= ply::f_dc_0 &&
-                p.name <= ply::f_rest_44 &&
-                p.name - ply::f_dc_0 + 1 > shCoeffCount)
-            {
-                shCoeffCount = p.name - ply::f_dc_0 + 1;
-            }
-        }
-        if (shCoeffCount > 0)
-            v.resizeSHCoeffs(shCoeffCount);
-    }
     for (const PlyProperty& p : vertexProperties) {
         if (token == spaceTokenizer.end()) {
             throw MalformedFileException("Unexpected end of line.");
@@ -208,21 +190,6 @@ void readPlyVertexBin(
     std::endian                   end,
     bool                          vcgGenerated = false)
 {
-    // Find the count of the spherical harmonics coefficients
-    if constexpr (HasPerVertexGaussianSplat<MeshType>) {
-        uint shCoeffCount = 0;
-        using Scalar = VertexType::GaussianSplatType::ScalarType;
-        for (const PlyProperty& p : vertexProperties) {
-            if (p.name >= ply::f_dc_0 &&
-                p.name <= ply::f_rest_44 &&
-                p.name - ply::f_dc_0 + 1 > shCoeffCount)
-            {
-                shCoeffCount = p.name - ply::f_dc_0 + 1;
-            }
-        }
-        if (shCoeffCount > 0)
-            v.resizeSHCoeffs(shCoeffCount);
-    }
     for (const PlyProperty& p : vertexProperties) {
         readPlyVertexProperty(file, mesh, v, p, vcgGenerated, end);
     }
@@ -323,6 +290,12 @@ void readPlyVertices(
 
     for (uint vid = 0; vid < header.vertexCount(); ++vid) {
         auto& v = m.vertex(vid);
+        // Find the count of the spherical harmonics coefficients
+        if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+            uint shCoeffCount = header.gaussianSplatSHCoeffsCount();
+            if (shCoeffCount > 0)
+                v.resizeSHCoeffs(shCoeffCount);
+        }
         if (header.format() == ply::ASCII) {
             detail::readPlyVertexTxt(
                 file, v, m, header.vertexProperties(), header.isVcgGenerated());
