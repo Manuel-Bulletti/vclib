@@ -98,6 +98,50 @@ void readPlyVertexProperty(
             }
         }
     }
+    // Gaussian Splat properties
+    else if (p.name >= ply::f_dc_0 && p.name <= ply::f_rest_44) {
+        if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+            using Scalar = VertexType::GaussianSplatType::ScalarType;
+            if (isPerVertexGaussianSplatAvailable(mesh)) {
+                int a = p.name - ply::f_dc_0;
+                v.shCoeffAt(a) =
+                    io::readPrimitiveType<Scalar>(file, p.type, end);
+                hasBeenRead = true;
+            }
+        }
+    }
+    else if (p.name == ply::opacity) {
+        if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+            using Scalar = VertexType::GaussianSplatType::ScalarType;
+            if (isPerVertexGaussianSplatAvailable(mesh)) {
+                v.opacity() =
+                    io::readPrimitiveType<Scalar>(file, p.type, end);
+                hasBeenRead = true;
+            }
+        }
+    }
+    else if (p.name >= ply::scale_0 && p.name <= ply::scale_2) {
+        if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+            using Scalar = VertexType::GaussianSplatType::ScalarType;
+            if (isPerVertexGaussianSplatAvailable(mesh)) {
+                int a = p.name - ply::scale_0;
+                v.scale()[a] =
+                    io::readPrimitiveType<Scalar>(file, p.type, end);
+                hasBeenRead = true;
+            }
+        }
+    }
+    else if (p.name >= ply::rot_0 && p.name <= ply::rot_3) {
+        if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+            using Scalar = VertexType::GaussianSplatType::ScalarType;
+            if (isPerVertexGaussianSplatAvailable(mesh)) {
+                int a = p.name - ply::rot_0;
+                v.rotation()[a] =
+                    io::readPrimitiveType<Scalar>(file, p.type, end);
+                hasBeenRead = true;
+            }
+        }
+    }
     else if (p.name == ply::unknown) {
         if constexpr (HasPerVertexCustomComponents<MeshType>) {
             if (mesh.hasPerVertexCustomComponent(p.unknownPropertyName)) {
@@ -129,6 +173,24 @@ void readPlyVertexTxt(
 {
     Tokenizer           spaceTokenizer = readAndTokenizeNextNonEmptyLine(file);
     Tokenizer::iterator token          = spaceTokenizer.begin();
+    // Find the count of the spherical harmonics coefficients
+    if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+        uint shCoeffCount = 0;
+        using Scalar = VertexType::GaussianSplatType::ScalarType;
+        for (const PlyProperty& p : vertexProperties) {
+            if (token == spaceTokenizer.end()) {
+                throw MalformedFileException("Unexpected end of line.");
+            }
+            if (p.name >= ply::f_dc_0 &&
+                p.name <= ply::f_rest_44 &&
+                p.name - ply::f_dc_0 + 1 > shCoeffCount)
+            {
+                shCoeffCount = p.name - ply::f_dc_0 + 1;
+            }
+        }
+        if (shCoeffCount > 0)
+            v.resizeSHCoeffs(shCoeffCount);
+    }
     for (const PlyProperty& p : vertexProperties) {
         if (token == spaceTokenizer.end()) {
             throw MalformedFileException("Unexpected end of line.");
@@ -146,6 +208,21 @@ void readPlyVertexBin(
     std::endian                   end,
     bool                          vcgGenerated = false)
 {
+    // Find the count of the spherical harmonics coefficients
+    if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+        uint shCoeffCount = 0;
+        using Scalar = VertexType::GaussianSplatType::ScalarType;
+        for (const PlyProperty& p : vertexProperties) {
+            if (p.name >= ply::f_dc_0 &&
+                p.name <= ply::f_rest_44 &&
+                p.name - ply::f_dc_0 + 1 > shCoeffCount)
+            {
+                shCoeffCount = p.name - ply::f_dc_0 + 1;
+            }
+        }
+        if (shCoeffCount > 0)
+            v.resizeSHCoeffs(shCoeffCount);
+    }
     for (const PlyProperty& p : vertexProperties) {
         readPlyVertexProperty(file, mesh, v, p, vcgGenerated, end);
     }
@@ -254,7 +331,7 @@ void readPlyVertices(
             std::endian end = header.format() == ply::BINARY_BIG_ENDIAN ?
                                   std::endian::big :
                                   std::endian::little;
-            detail::readPlyVertexBin(
+            detail::readPlyVertexBin( //TODO complete gaussian property
                 file,
                 v,
                 m,

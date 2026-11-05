@@ -49,6 +49,7 @@ class Vertex :
             vert::Position3<Scalar>,
             vert::Normal3<Scalar>,
             vert::OptionalColor<Vertex<Scalar>>,
+            vert::GaussianSplat<Scalar>,
             vert::OptionalQuality<Scalar, Vertex<Scalar>>,
             vert::OptionalAdjacentVertexPointers<Vertex<Scalar>>,
             vert::OptionalTexCoord<Scalar, Vertex<Scalar>>,
