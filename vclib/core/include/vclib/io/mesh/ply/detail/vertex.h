@@ -291,7 +291,7 @@ void readPlyVertices(
     for (uint vid = 0; vid < header.vertexCount(); ++vid) {
         auto& v = m.vertex(vid);
         // Find the count of the spherical harmonics coefficients
-        if constexpr (HasPerVertexGaussianSplat<MeshType>) {
+        if constexpr (comp::HasOptionalGaussianSplat<MeshType>) {
             uint shCoeffCount = header.gaussianSplatSHCoeffsCount();
             if (shCoeffCount > 0)
                 v.resizeSHCoeffs(shCoeffCount);

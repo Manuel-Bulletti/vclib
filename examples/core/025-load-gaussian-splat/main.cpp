@@ -25,5 +25,12 @@ int main()
 
     std::cout << "Loaded Bonsai Gaussian Splat Point Cloud" << std::endl;
 
+    vcl::pointcloud::Vertex<double>& v0 = pointCloud.vertex(0);
+    vcl::GaussianSplat<double>& gs0 = v0.gaussianSplat();
+
+    gs0.serialize(std::cout);
+
+    //std::cout << ... << std::endl;
+
     return 0;
 }
